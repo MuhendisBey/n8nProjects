@@ -1,0 +1,455 @@
+{
+  "name": "jiraGithubIntegration",
+  "nodes": [
+    {
+      "parameters": {
+        "authentication": "headerAuth",
+        "url": "https://api.github.com/repos/MuhendisBey/n8nTestRepo/git/ref/heads/main",
+        "options": {}
+      },
+      "id": "58467ee0-5fc3-4814-ad81-a041e4402c34",
+      "name": "Get Base SHA",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 1,
+      "position": [
+        460,
+        0
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "kTKvoxX8C6b20QvN",
+          "name": "Header Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "authentication": "headerAuth",
+        "requestMethod": "POST",
+        "url": "https://api.github.com/repos/MuhendisBey/n8nTestRepo/git/refs",
+        "jsonParameters": true,
+        "options": {},
+        "bodyParametersJson": "=\n{\n  \"ref\" : \"refs/heads/{{ $json.branch_name }}\",\n  \"sha\" : \"{{ $json.sha }}\"\n}\n",
+        "headerParametersJson": "\n{\n  \"Accept\": \"application/vnd.github+json\"\n}\n"
+      },
+      "id": "a9b341f3-9c00-471f-9f3b-68c07cbab756",
+      "name": "Create Branch",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 1,
+      "position": [
+        900,
+        0
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "kTKvoxX8C6b20QvN",
+          "name": "Header Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "functionCode": "return [{\n  json: {\n    branch_name: \"feature/\"+$node[\"Switch\"].json.issue.key+\"-\"+$node[\"Switch\"].json.issue.fields.summary,\n    sha: $node[\"Get Base SHA\"].json.object.sha\n  }\n}]"
+      },
+      "id": "580b0332-70c3-47ae-ab2e-8acb72382c2e",
+      "name": "Generate Branch Name",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [
+        680,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "authentication": "headerAuth",
+        "requestMethod": "POST",
+        "url": "https://api.github.com/repos/MuhendisBey/n8nTestRepo/pulls",
+        "jsonParameters": true,
+        "options": {},
+        "bodyParametersJson": "={\n  \"title\": \"{{ $json.issueKey }}-{{ $json.issueSummary }}\",\n  \"head\": \"feature/{{ $json.issueKey }}-{{ $json.issueSummary }}\",\n  \"base\": \"main\",\n  \"body\": \"Automatically opened for review from Jira issue {{ $json.issueKey }}\"\n}",
+        "headerParametersJson": "\n{\n  \"Accept\": \"application/vnd.github+json\"\n}\n"
+      },
+      "id": "b761a4b2-ebc7-4b33-b8e9-be43eac59816",
+      "name": "Create PR",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 1,
+      "position": [
+        660,
+        200
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "kTKvoxX8C6b20QvN",
+          "name": "Header Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "functionCode": "return [{\n  json: {\n    issueKey: $node[\"Switch\"].json.issue.key,\n    issueSummary: $node[\"Switch\"].json.issue.fields.summary\n  }\n}];"
+      },
+      "id": "bdd596b5-5c83-44f2-b5b1-8c0805131bee",
+      "name": "Generate Branch Name1",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [
+        460,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "authentication": "oAuth2",
+        "owner": {
+          "__rl": true,
+          "value": "MuhendisBey",
+          "mode": "name"
+        },
+        "repository": {
+          "__rl": true,
+          "value": "n8nTestRepo",
+          "mode": "name"
+        },
+        "events": [
+          "pull_request"
+        ],
+        "options": {
+          "insecureSSL": false
+        }
+      },
+      "type": "n8n-nodes-base.githubTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        420
+      ],
+      "id": "87cdf4c4-c84d-4f3b-b3e5-c265588357dd",
+      "name": "Github Trigger",
+      "webhookId": "da9e0b6a-4e2a-4ef6-8410-ed54888476fc",
+      "credentials": {
+        "githubOAuth2Api": {
+          "id": "AEfL54xr9yTLBGX3",
+          "name": "GitHub account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "238b72d2-c260-4da7-8a9d-0dbab6324fab",
+              "leftValue": "={{ $json.body.pull_request.merged }}",
+              "rightValue": "\"true\"",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        220,
+        420
+      ],
+      "id": "a3872275-d78d-4bb9-a124-67fdb7a25d72",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "7658107b-7743-4713-9591-20646c9a41e6",
+              "name": "branchName",
+              "value": "={{ $json.body.pull_request.head.ref }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        480,
+        360
+      ],
+      "id": "b4ca8735-b72c-458a-a004-d41002c31a4b",
+      "name": "Get Branch Name"
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "issueKey": "={{ $json.issueKey }}",
+        "updateFields": {
+          "statusId": {
+            "__rl": true,
+            "value": "31",
+            "mode": "list",
+            "cachedResultName": "Done"
+          }
+        }
+      },
+      "type": "n8n-nodes-base.jira",
+      "typeVersion": 1,
+      "position": [
+        880,
+        360
+      ],
+      "id": "eeafd552-97dc-4503-b8fe-1500b1f81a16",
+      "name": "Jira Software",
+      "credentials": {
+        "jiraSoftwareCloudApi": {
+          "id": "ewap6pnZHRDiRu6g",
+          "name": "Jira SW Cloud account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const branchName = $input.first().json.branchName;\n\nconst match = branchName.match(/^feature\\/([A-Z0-9]+-\\d+)-.+$/);\n\nconsole.log(\"Branch name:\", $input.first().json.branchName);\n\nif (match) {\n  return [{\n    json: {\n      issueKey: match[1]\n    }\n  }];\n}\n\nreturn [{ json: {} }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        700,
+        360
+      ],
+      "id": "f98af04d-042a-44a9-a4f4-e33d13a4dff2",
+      "name": "Get Epic Name"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.issue_event_type_name }}",
+                    "rightValue": "issue_created",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "c2f6c37f-a427-4dc4-b91e-64cc65cf7f40"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Jira Feature Created"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "c5ef117a-5664-46d9-bd10-a4a25096edd1",
+                    "leftValue": "={{ $json.issue.fields.status.name }}",
+                    "rightValue": "Integration",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Epic in Review"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [
+        160,
+        100
+      ],
+      "id": "4b309233-5884-4682-bbfe-cbffb4e4a050",
+      "name": "Switch"
+    },
+    {
+      "parameters": {
+        "events": [
+          "jira:issue_updated",
+          "jira:issue_created"
+        ],
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.jiraTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        -60,
+        100
+      ],
+      "id": "fa3aa074-b1f9-4957-b224-23fa24670e28",
+      "name": "Epic Updated",
+      "webhookId": "82135ddd-360b-44bc-bdbb-c416086eeae6",
+      "notesInFlow": true,
+      "credentials": {
+        "jiraSoftwareCloudApi": {
+          "id": "ewap6pnZHRDiRu6g",
+          "name": "Jira SW Cloud account"
+        }
+      },
+      "notes": "get Jira Epics"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Get Base SHA": {
+      "main": [
+        [
+          {
+            "node": "Generate Branch Name",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate Branch Name": {
+      "main": [
+        [
+          {
+            "node": "Create Branch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate Branch Name1": {
+      "main": [
+        [
+          {
+            "node": "Create PR",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Github Trigger": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Get Branch Name",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Branch Name": {
+      "main": [
+        [
+          {
+            "node": "Get Epic Name",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Epic Name": {
+      "main": [
+        [
+          {
+            "node": "Jira Software",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch": {
+      "main": [
+        [
+          {
+            "node": "Get Base SHA",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Generate Branch Name1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Epic Updated": {
+      "main": [
+        [
+          {
+            "node": "Switch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "89aeea94-5717-482e-b0de-829651a26783",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "862209d8baf379cc379fabc0d17079cb822cd5af56dc6e6e975d16d95cd84302"
+  },
+  "id": "dcebiV2P5ShjYq8q",
+  "tags": [
+    {
+      "name": "v1.0",
+      "id": "mXqTLBY3Jk1zFQ0S",
+      "createdAt": "2025-04-21T16:16:44.254Z",
+      "updatedAt": "2025-04-21T16:16:44.254Z"
+    }
+  ]
+}
