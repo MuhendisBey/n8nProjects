@@ -1,0 +1,82 @@
+{
+  "nodes": [
+    {
+      "parameters": {
+        "events": [
+          "jira:issue_updated"
+        ],
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.jiraTrigger",
+      "typeVersion": 1,
+      "position": [
+        100,
+        100
+      ],
+      "name": "Jira Epic Updated",
+      "credentials": {
+        "jiraSoftwareCloudApi": {
+          "id": "your-jira-credential-id",
+          "name": "Jira Credentials"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "input": "Epic status is {{$json.issue.fields.status.name}} and key is {{$json.issue.key}}",
+        "agent": "Your AI Agent Configuration"
+      },
+      "type": "n8n-nodes-base.aiAgent",
+      "typeVersion": 1,
+      "position": [
+        400,
+        100
+      ],
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "owner": "your-github-username",
+        "repository": "your-repo-name",
+        "branch": "feature/{{$json.issueKey}}"
+      },
+      "type": "n8n-nodes-base.github",
+      "typeVersion": 1,
+      "position": [
+        700,
+        100
+      ],
+      "name": "Create GitHub Branch",
+      "credentials": {
+        "githubApi": {
+          "id": "your-github-credential-id",
+          "name": "GitHub Credentials"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Jira Epic Updated": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Create GitHub Branch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  }
+}
